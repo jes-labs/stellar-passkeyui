@@ -18,4 +18,20 @@ export {
   challengeFromPayload,
 } from './webauthn'
 
+export {
+  detectBrowser,
+  browserEnvironment,
+  detectCapabilities,
+  activeConditions,
+  selectFallbacks,
+  type BrowserEngine,
+  type BrowserFamily,
+  type Capabilities,
+  type ConditionObservations,
+  type PasskeyEnvironment,
+  type CompatRule,
+  type RuntimeConditionId,
+  type FallbackActionId,
+} from './capabilities'
+
 export const version = '0.0.0'
