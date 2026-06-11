@@ -1,0 +1,12 @@
+packages:
+  - packages/*
+  - examples/*
+  - apps/*
+
+enablePrePostScripts: true
+
+# Native postinstall scripts we trust. Keeps `pnpm install` from silently
+# skipping the esbuild/biome binaries that tsup and Biome need.
+onlyBuiltDependencies:
+  - esbuild
+  - "@biomejs/biome"
