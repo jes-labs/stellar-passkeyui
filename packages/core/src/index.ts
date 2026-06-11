@@ -47,4 +47,23 @@ export {
   type FallbackActionId,
 } from './capabilities'
 
+export {
+  deriveWalletAddress,
+  authorizationPayload,
+  payloadForAuthEntry,
+  authorizePayload,
+  authorizeWalletEntry,
+  launchtubeSubmitter,
+  type DeriveWalletAddressArgs,
+  type AuthorizationPayloadArgs,
+  type PasskeyAuthorization,
+  type PayloadSigner,
+  type SignatureEncoder,
+  type Submitter,
+  type SubmitResult,
+  type LaunchtubeConfig,
+  type FetchLike,
+  type FetchResponse,
+} from './stellar'
+
 export const version = '0.0.0'
