@@ -16,6 +16,19 @@ export {
   derToCompactSignature,
   webauthnSignedDigest,
   challengeFromPayload,
+  browserWebAuthnApi,
+  buildCreationOptions,
+  buildRequestOptions,
+  defaultAuthenticatorSelection,
+  createPasskey,
+  signWithPasskey,
+  type WebAuthnApi,
+  type RawCreateResult,
+  type RawGetResult,
+  type CreatePasskeyInput,
+  type SignWithPasskeyInput,
+  type CreatePasskeyResult,
+  type SignWithPasskeyResult,
 } from './webauthn'
 
 export {
