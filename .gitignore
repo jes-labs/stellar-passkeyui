@@ -9,3 +9,5 @@ coverage
 .env
 .env.local
 *.log
+test-results
+playwright-report
