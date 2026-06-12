@@ -23,3 +23,8 @@ export {
   type FetchResponse,
   launchtubeSubmitter,
 } from './submit'
+export {
+  type WebAuthnSignatureParts,
+  passkeyKitSignatureScVal,
+  attachSignatureToEntry,
+} from './encoder'

@@ -94,6 +94,14 @@ This project builds on prior art rather than competing with it.
 - **[stellar-wallet-kit](https://github.com/Creit-Tech/Stellar-Wallets-Kit)** (Creit Tech) is the integration target. The core SDK conforms to its module interface so passkeys become one more wallet option teams can switch on.
 - **[Porto](https://porto.sh)** (Ithaca) is a reference for SDK shape and passkey UX, and for its honest catalogue of WebAuthn gotchas. Porto targets Ethereum, so its account model does not transfer; what transfers is the API minimalism, the clean split between a headless core and a UI layer, and the hard-won compatibility lessons.
 
+## Verified on-chain
+
+The full smart-wallet flow runs against live testnet, reproducible with `pnpm --filter @passkey-ui/e2e exec tsx testnet/run.ts`: deploy a wallet from the unmodified passkey-kit contracts (the address the SDK derives offline matches the deployment exactly), fund it, and move 25 XLM out of it with a WebAuthn secp256r1 signature the SDK constructs — verified by the contract's own `__check_auth`.
+
+- [Passkey-signed payment](https://stellar.expert/explorer/testnet/tx/dd2d9815ee1a3ea34e95bf58fd2658ba3892a5e47d7bb758c50f75ef49e9c534) · [wallet contract](https://stellar.expert/explorer/testnet/contract/CBKYYID4SL7BWPM6IMYDN6RJ3HWTSG254HRQLGBRWA3VUDIZIFK7YWVH) · [deploy](https://stellar.expert/explorer/testnet/tx/599002d3a0970c54a71d239e0814aee931ad832e5bdb54fd71d17dc82586d69c)
+
+The signature ScVal encoding is byte-identical to what the contract's Rust SDK produces, checked by generating both from the same fixture.
+
 ## Verified on real devices
 
 The reference demo has been exercised by hand on real hardware. Each session records only what the tester actually confirmed; the full log lives in the [compatibility guide](apps/docs/compatibility.md) and grows as devices are covered.

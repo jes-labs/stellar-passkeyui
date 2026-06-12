@@ -80,10 +80,10 @@ test('connect and signAuthEntry through the kit facade, verified independently',
   expect(credentials.nonce().toString()).toBe('123456789')
   expect(credentials.signatureExpirationLedger()).toBe(4_000_000)
 
-  // Unpack the signature ScVal: Map<SignerKey::Secp256r1(credentialId),
-  // Signature::Secp256r1({ authenticator_data, client_data_json, signature })>.
-  const signatureMap = credentials.signature().map()
-  expect(signatureMap).not.toBeNull()
+  // Unpack the signature ScVal: Signatures is a tuple struct, so a Vec wraps
+  // the Map<SignerKey::Secp256r1(credentialId), Signature::Secp256r1({...})>.
+  const signatureMap = credentials.signature().vec()?.[0]?.map()
+  expect(signatureMap).toBeDefined()
   expect(signatureMap!.length).toBe(1)
 
   const entrySigned = signatureMap![0]!
