@@ -147,7 +147,16 @@ function buildAuthEntry(walletAddress: string, entryNonce: bigint): string {
 function extractSignatureHex(signedEntryXdr: string): string | undefined {
   try {
     const entry = xdr.SorobanAuthorizationEntry.fromXDR(signedEntryXdr, 'base64')
-    const fields = entry.credentials().address().signature().map()?.[0]?.val().vec()?.[1]?.map()
+    // Signatures is Vec-wrapped (tuple struct), then Map, then the enum payload.
+    const fields = entry
+      .credentials()
+      .address()
+      .signature()
+      .vec()?.[0]
+      ?.map()?.[0]
+      ?.val()
+      .vec()?.[1]
+      ?.map()
     const signature = fields?.find((field) => field.key().sym().toString() === 'signature')
     if (!signature) return undefined
     const bytes = new Uint8Array(signature.val().bytes())
