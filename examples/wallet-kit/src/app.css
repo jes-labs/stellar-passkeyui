@@ -669,3 +669,90 @@ body::after {
     animation: none;
   }
 }
+
+/* ---- chain steps --------------------------------------------------------- */
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.step {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--text-dim);
+}
+
+.step__marker {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #4d473c;
+  position: relative;
+  top: 2px;
+}
+
+.step--active .step__marker {
+  border-color: var(--brass);
+  border-top-color: transparent;
+  animation: spin 0.7s linear infinite;
+}
+
+.step--done {
+  color: var(--text);
+}
+
+.step--done .step__marker {
+  border-color: var(--brass);
+  background: radial-gradient(circle at center, var(--brass) 45%, transparent 50%);
+}
+
+.step__link {
+  color: var(--brass);
+  font-size: 12px;
+}
+
+.chain-error {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.receipt__link {
+  margin: 0 0 14px;
+}
+
+.receipt__link a {
+  color: var(--brass-bright);
+  font-weight: 600;
+}
+
+.copy:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.error {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+.wallet-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+a.copy--link {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}

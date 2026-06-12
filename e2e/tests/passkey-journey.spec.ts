@@ -13,7 +13,7 @@ const COMPACT_SIGNATURE_HEX = /^[0-9a-f]{128}$/
 test('the capability card reports a healthy platform', async ({ page }) => {
   const client = await enableWebAuthn(page)
   await addVirtualAuthenticator(client)
-  await page.goto('/')
+  await page.goto('/?mode=offline')
 
   const lights = page.locator('.light')
   await expect(lights.filter({ hasText: 'WebAuthn' })).toHaveClass(/light--on/)
@@ -23,7 +23,7 @@ test('the capability card reports a healthy platform', async ({ page }) => {
 test('create and sign run real ceremonies and the signature verifies', async ({ page }) => {
   const client = await enableWebAuthn(page)
   await addVirtualAuthenticator(client)
-  await page.goto('/')
+  await page.goto('/?mode=offline')
 
   // Create: a real registration ceremony.
   await page.getByRole('button', { name: 'Create passkey' }).click()
@@ -116,7 +116,7 @@ test('a user-verification-less authenticator still completes create (uv preferre
     hasUserVerification: false,
     isUserVerified: false,
   })
-  await page.goto('/')
+  await page.goto('/?mode=offline')
 
   // The SDK requests userVerification "preferred", so an authenticator without
   // UV must degrade gracefully instead of rejecting the ceremony. This is the
@@ -128,7 +128,7 @@ test('a user-verification-less authenticator still completes create (uv preferre
 test('a failed ceremony shows a retryable error, and retry recovers', async ({ page }) => {
   const client = await enableWebAuthn(page)
   const authenticator = await addVirtualAuthenticator(client)
-  await page.goto('/')
+  await page.goto('/?mode=offline')
 
   await page.getByRole('button', { name: 'Create passkey' }).click()
   await expect(page.getByText('Smart-wallet address', { exact: true })).toBeVisible()
