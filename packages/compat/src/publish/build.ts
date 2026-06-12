@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { findings } from '../data'
-import { assertValidFindings, dataAsOf } from '../schema'
+import { findings, sessions } from '../data'
+import { assertValidFindings, dataAsOf, validateSessions } from '../schema'
 import { generateGuide } from './guide'
 import { deriveRules, emitRulesModule } from './rules'
 
@@ -23,13 +23,18 @@ function write(path: string, contents: string): void {
 }
 
 assertValidFindings(findings)
+const sessionErrors = validateSessions(sessions)
+if (sessionErrors.length > 0)
+  throw new Error(`session data failed validation:\n- ${sessionErrors.join('\n- ')}`)
 
 const asOf = dataAsOf(findings)
 const rules = deriveRules(findings)
 
 write(CORE_RULES_PATH, emitRulesModule(rules, { asOf }))
-write(GUIDE_PATH, generateGuide(findings, { asOf }))
+write(GUIDE_PATH, generateGuide(findings, { asOf, sessions }))
 
-console.log(`compat: validated ${findings.length} findings (data as of ${asOf})`)
+console.log(
+  `compat: validated ${findings.length} findings, ${sessions.length} sessions (data as of ${asOf})`,
+)
 console.log(`compat: wrote ${rules.length} runtime rules -> ${CORE_RULES_PATH}`)
 console.log(`compat: wrote guide -> ${GUIDE_PATH}`)

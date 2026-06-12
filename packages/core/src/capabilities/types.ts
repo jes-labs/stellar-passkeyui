@@ -20,6 +20,12 @@ export interface Capabilities {
   conditionalMediation: boolean
   browser: BrowserFamily
   engine: BrowserEngine
+  /**
+   * The browser's marketing name from User-Agent Client Hints, when it declares
+   * one (Brave, Opera, and Edge hide behind a Chrome user-agent string but do
+   * declare their brand here). Display only — fallback logic keys on engine.
+   */
+  brand?: string
 }
 
 /**
@@ -41,6 +47,8 @@ export interface PasskeyEnvironment {
   inIframe: boolean
   crossOriginIframe: boolean
   userAgent: string
+  /** Brand names from User-Agent Client Hints, where the browser provides them. */
+  brands?: readonly string[]
   isPlatformAuthenticatorAvailable(): Promise<boolean>
   isConditionalMediationAvailable(): Promise<boolean>
 }

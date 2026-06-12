@@ -2,6 +2,8 @@
 
 A minimal, composable passkey SDK and a small set of UI components for Stellar smart wallets, built around a compatibility guide that is kept current as browsers and devices change.
 
+**Live demo:** [stellar-passkey-demo.vercel.app](https://stellar-passkey-demo.vercel.app/) — create a smart wallet with your fingerprint and sign a transaction, right in the browser.
+
 The goal is narrow and practical: let a wallet team add passkey sign-in to a Soroban smart account without rebuilding the WebAuthn plumbing, the on-chain signing logic, or — the part that actually hurts — the cross-device compatibility knowledge that decides whether a passkey flow works on a user's phone or silently fails.
 
 ## Why this exists

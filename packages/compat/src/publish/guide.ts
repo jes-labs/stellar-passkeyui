@@ -1,4 +1,4 @@
-import type { CompatAxis, CompatFinding, PlatformSelector } from '../schema'
+import type { CompatAxis, CompatFinding, ManualSession, PlatformSelector } from '../schema'
 
 // Render the matrix as a human-readable guide. The generator is pure and
 // deterministic: the same findings always produce the same markdown, so the
@@ -33,6 +33,8 @@ const OUTCOME_LABELS = {
 export interface GuideOptions {
   /** "Data as of" stamp shown in the header. */
   asOf: string
+  /** Real-hardware sessions to publish alongside the findings. */
+  sessions?: readonly ManualSession[]
 }
 
 export function generateGuide(findings: readonly CompatFinding[], options: GuideOptions): string {
@@ -97,6 +99,22 @@ export function generateGuide(findings: readonly CompatFinding[], options: Guide
       for (const source of finding.sources) lines.push(`- ${source}`)
       lines.push('')
     }
+  }
+
+  if (options.sessions && options.sessions.length > 0) {
+    lines.push('## Verified device sessions')
+    lines.push('')
+    lines.push(
+      'Real-hardware tests of the reference demo. Each entry records only what the tester actually confirmed.',
+    )
+    lines.push('')
+    lines.push('| Date | Device | Browser | Authenticator | Outcome | Confirmed |')
+    lines.push('| ---- | ------ | ------- | ------------- | ------- | --------- |')
+    for (const session of options.sessions)
+      lines.push(
+        `| ${session.date} | ${session.device} (${session.os}) | ${session.browser} | ${session.authenticator} | ${OUTCOME_LABELS[session.outcome]} | ${session.confirmed} |`,
+      )
+    lines.push('')
   }
 
   lines.push('## Maintenance')
