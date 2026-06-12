@@ -1,0 +1,24 @@
+import { defineConfig } from '@playwright/test'
+
+// End-to-end tests for the passkey module running inside the real Stellar
+// Wallets Kit (examples/kit-integration, which consumes the kit built from the
+// feat/passkey-module branch). Run with: npx playwright test -c kit.config.ts
+export default defineConfig({
+  testDir: './kit-tests',
+  fullyParallel: false,
+  retries: 0,
+  reporter: [['list']],
+  timeout: 60_000,
+  use: {
+    baseURL: 'http://localhost:4174',
+    trace: 'retain-on-failure',
+  },
+  webServer: {
+    command:
+      'pnpm --filter example-kit-integration run build && pnpm --filter example-kit-integration run preview',
+    cwd: '..',
+    url: 'http://localhost:4174',
+    reuseExistingServer: false,
+    timeout: 180_000,
+  },
+})

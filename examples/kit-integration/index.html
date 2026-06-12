@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Passkey × Stellar Wallets Kit — reference integration</title>
+    <meta
+      name="description"
+      content="The passkey smart-wallet module running inside the real Stellar Wallets Kit, next to Freighter, Albedo, xBull, and Lobstr."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Archivo:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="masthead">
+        <span class="masthead__brand">
+          <svg class="keymark" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="9" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8" />
+            <path
+              d="M9 11.5V20l2-1.8L13 20v-3.4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Passkey × Stellar Wallets Kit
+        </span>
+        <span class="masthead__meta">Reference integration · Testnet</span>
+      </header>
+
+      <main class="stage">
+        <section id="hero" class="hero">
+          <div class="orb" aria-hidden="true">
+            <div class="orb__core"></div>
+            <div class="orb__ring"></div>
+          </div>
+          <p class="kicker reveal" style="animation-delay: 80ms">Stellar Wallets Kit</p>
+          <h1 class="display reveal" style="animation-delay: 160ms">
+            Every wallet.<br /><em>Now with passkeys.</em>
+          </h1>
+          <p class="lede reveal" style="animation-delay: 260ms">
+            The kit's own Connect Wallet modal — Freighter, Albedo, xBull, Lobstr — with a Soroban
+            smart wallet behind your fingerprint registered like any other wallet.
+          </p>
+          <div class="hero__action reveal" style="animation-delay: 360ms">
+            <button id="connect" class="btn" type="button">Connect wallet</button>
+          </div>
+          <p id="hero-error" class="error" hidden></p>
+        </section>
+
+        <section id="wallet" class="wallet" hidden>
+          <div class="wallet-card">
+            <div class="wallet-card__head">
+              <span class="wallet-card__title">
+                <svg class="keymark" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="9" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8" />
+                  <path
+                    d="M9 11.5V20l2-1.8L13 20v-3.4"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                Smart wallet
+              </span>
+              <span class="pill">Testnet</span>
+            </div>
+            <div class="field">
+              <span class="field__label">Smart-wallet address</span>
+              <code id="address" class="field__value field__value--address" data-field="address"></code>
+            </div>
+            <div class="wallet-card__actions">
+              <button id="copy" class="ghost" type="button">Copy address</button>
+              <button id="disconnect" class="ghost ghost--quiet" type="button">Disconnect</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2 class="panel__title">Authorize a contract call</h2>
+            <p class="panel__hint">
+              Signed through <code>StellarWalletsKit.signAuthEntry</code> — the kit routes it to the
+              connected wallet, and the passkey prompts your biometric.
+            </p>
+            <dl class="ledger">
+              <div class="ledger__row">
+                <dt>Invocation</dt>
+                <dd class="mono">transfer()</dd>
+              </div>
+              <div class="ledger__row">
+                <dt>Nonce</dt>
+                <dd id="nonce" class="mono"></dd>
+              </div>
+              <div class="ledger__row">
+                <dt>Expires</dt>
+                <dd class="mono">ledger 4,000,000</dd>
+              </div>
+            </dl>
+            <button id="sign" class="btn" type="button">Sign</button>
+            <p id="sign-status" class="status" hidden></p>
+            <p id="sign-error" class="error" hidden></p>
+
+            <div id="receipt" class="receipt" hidden>
+              <div class="receipt__stamp">Signed</div>
+              <p class="receipt__line">
+                The wallet contract re-derives this exact payload on-chain and verifies the
+                signature with native secp256r1.
+              </p>
+              <div class="field">
+                <span class="field__label">Signature (64-byte compact)</span>
+                <code id="signature" class="field__value" data-field="signature"></code>
+              </div>
+              <details class="drawer">
+                <summary>Signed authorization entry (XDR)</summary>
+                <div class="drawer__body">
+                  <code id="signed-xdr" class="field__value"></code>
+                </div>
+              </details>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="colophon">
+        <p>
+          Passkey module from
+          <a href="https://github.com/Creit-Tech/Stellar-Wallets-Kit/pull/94">Stellar-Wallets-Kit #94</a>
+          · compatibility guide and SDK at
+          <a href="https://github.com/jes-labs/stellar-passkeyui">jes-labs/stellar-passkeyui</a>
+        </p>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
