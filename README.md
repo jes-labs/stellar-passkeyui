@@ -2,7 +2,14 @@
 
 A minimal, composable passkey SDK and a small set of UI components for Stellar smart wallets, built around a compatibility guide that is kept current as browsers and devices change.
 
-**Live demo:** [stellar-passkey-demo.vercel.app](https://stellar-passkey-demo.vercel.app/) — create a smart wallet with your fingerprint and sign a transaction, right in the browser.
+The passkey module connected from Stellar Wallets Kit's own modal and signing with Touch ID ([upstream PR #94](https://github.com/Creit-Tech/Stellar-Wallets-Kit/pull/94)):
+
+https://github.com/user-attachments/assets/5d2f221b-c8c9-4599-b087-e345a77c4b04
+
+**Live demos:**
+
+- [stellar-passkey-demo.vercel.app](https://stellar-passkey-demo.vercel.app/) — Aurum, the reference wallet experience: create a smart wallet with your fingerprint and sign a transaction, right in the browser.
+- [wallet-passkey-demo.vercel.app](https://wallet-passkey-demo.vercel.app/) — the kit integration: the passkey module inside the real Stellar Wallets Kit, next to Freighter, Albedo, xBull, and Lobstr.
 
 The goal is narrow and practical: let a wallet team add passkey sign-in to a Soroban smart account without rebuilding the WebAuthn plumbing, the on-chain signing logic, or — the part that actually hurts — the cross-device compatibility knowledge that decides whether a passkey flow works on a user's phone or silently fails.
 
@@ -86,6 +93,19 @@ This project builds on prior art rather than competing with it.
 - **[passkey-kit](https://github.com/kalepail/passkey-kit)** (Tyler van der Hoeven) is the functional precedent: the smart-wallet factory and wallet contracts, and on-chain secp256r1 verification. This project reuses those contracts and distills a minimal, composable layer from the lineage rather than reinventing the on-chain model.
 - **[stellar-wallet-kit](https://github.com/Creit-Tech/Stellar-Wallets-Kit)** (Creit Tech) is the integration target. The core SDK conforms to its module interface so passkeys become one more wallet option teams can switch on.
 - **[Porto](https://porto.sh)** (Ithaca) is a reference for SDK shape and passkey UX, and for its honest catalogue of WebAuthn gotchas. Porto targets Ethereum, so its account model does not transfer; what transfers is the API minimalism, the clean split between a headless core and a UI layer, and the hard-won compatibility lessons.
+
+## Verified on real devices
+
+The reference demo has been exercised by hand on real hardware. Each session records only what the tester actually confirmed; the full log lives in the [compatibility guide](apps/docs/compatibility.md) and grows as devices are covered.
+
+| Device | Browser | Authenticator | Result |
+| ------ | ------- | ------------- | ------ |
+| MacBook Pro (macOS) | Brave, Safari, Firefox | Touch ID | ✅ create + sign |
+| iPhone (iOS) | Safari | Face ID | ✅ passkey flow |
+| Android phone | Chrome, Edge, Opera Mini | Fingerprint | ✅ passkey flow |
+| Android phone | Firefox | Fingerprint | ⚠️ works; no autofill — the SDK fell back to the explicit button, as the matrix documents |
+
+Automated coverage runs in CI-style fashion against Chromium's virtual authenticator (see `e2e/`), exercising create, sign, user-verification degradation, and the lost-credential recovery path on every change.
 
 ## Project status
 
