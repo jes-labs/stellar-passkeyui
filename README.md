@@ -66,14 +66,15 @@ This is a pnpm monorepo. The SDK core is kept deliberately thin and framework-fr
 packages/
   core/        framework-free SDK: WebAuthn, key + signature parsing,
                challenge construction, wallet operations, capability detection
-  ui/          create / sign / recover components, themeable, no design system
   compat/      the compatibility matrix as data, plus the pipeline that
-               generates the SDK tables and the published guide
+               generates the SDK fallback rules and the published guide
+  ui/          create / sign / recover flows, framework-agnostic, with React
+               components as the reference binding; themeable, no design system
+  wallet-kit/  a Stellar Wallets Kit module backed by the core SDK
 examples/
-  standalone/  the SDK used directly
-  wallet-kit/  the SDK used through stellar-wallet-kit (the reference integration)
+  wallet-kit/  the SDK used through the kit (the reference integration + demo)
 apps/
-  docs/        the guide and API docs, generated from compat data
+  docs/        the guide and API docs, with the guide generated from compat data
 ```
 
 ## Relationship to existing work
@@ -86,14 +87,16 @@ This project builds on prior art rather than competing with it.
 
 ## Project status
 
-Early. The work is sequenced so the riskiest, most testable parts come first.
+The work was sequenced so the riskiest, most testable parts came first. The pieces below are built and covered by tests that check against independent references — Node's own crypto, the OpenSSL CLI, the curve generator point, and the Stellar SDK's own preimage construction — rather than against the implementation itself.
 
-Landed and verified:
+Built and verified, end to end offline:
 
-- The monorepo foundation — strict TypeScript, Biome, Vitest, library builds.
-- The core cryptographic and WebAuthn primitives: P-256 public-key extraction from both DER SPKI keys and raw COSE authenticator data, DER-to-compact signature conversion with low-S normalization, the on-chain signing digest, and the base64url encoding both the browser and the contract rely on. Each is covered by tests that check against independent references — Node's own crypto, the curve generator point, and real P-256 signatures — rather than against the implementation itself.
+- **The core SDK** — P-256 key extraction from both DER SPKI keys and raw COSE authenticator data, DER-to-compact signatures with low-S normalization, the WebAuthn signing digest, capability detection and the documented-fallback engine, the create and sign ceremony wrappers, deterministic wallet-address derivation, the Soroban authorization payload, and a Launchtube submitter.
+- **The compatibility layer** — the matrix as structured data, with one generator producing both the published guide and the SDK's runtime fallback rules, so the two cannot drift.
+- **The UI** — a framework-agnostic flow layer that maps the matrix's conditions onto UI states, with React components as the reference binding.
+- **The Stellar Wallets Kit module** and a reference demo that performs real passkey creation, address derivation, and signing entirely in the browser.
 
-In progress, in order: the compatibility data layer and its generators, capability detection and fallback selection, the WebAuthn create/sign/recover flow wrappers, the smart-wallet operations against testnet, the UI components, and the stellar-wallet-kit module with a reference integration.
+Gated on coordination, not yet verifiable here: the on-chain pieces that depend on the deployed smart-wallet contract bindings — encoding the passkey signature into the contract's authorization ScVal, and the factory deployment. The SDK exposes a clean adapter seam for these, and they are the subject of the coordination with the contract maintainer that the design calls for. The compatibility entries are sourced from specifications and vendor documentation and are marked accordingly; confirming them on real hardware is the next stage of the documentation work.
 
 ## Development
 

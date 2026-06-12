@@ -1,7 +1,7 @@
 /*
- * A reference stylesheet for the @passkey-ui/ui components. The library ships
- * structure and CSS variables only; this is one opinionated theme for the pk-*
- * classes. Copy it as a starting point and change whatever you like.
+ * Reference stylesheet for the @passkey-ui/ui components, in the Aurum theme.
+ * The library ships structure and CSS variables only; this is one opinionated
+ * skin for the pk-* classes. Copy it as a starting point and make it yours.
  */
 
 .pk-flow {
@@ -10,48 +10,77 @@
 }
 
 .pk-button {
+  position: relative;
+  overflow: hidden;
   appearance: none;
   border: 0;
   cursor: pointer;
-  font: inherit;
+  font-family: inherit;
+  font-size: 14px;
   font-weight: 600;
-  background: var(--pk-accent);
+  letter-spacing: 0.04em;
+  background: linear-gradient(120deg, var(--pk-accent), #e8d5a3 130%);
   color: var(--pk-accent-foreground);
-  padding: 11px 18px;
+  padding: 13px 28px;
   border-radius: var(--pk-radius);
-  transition: transform 0.12s ease, filter 0.12s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 10px 28px -10px rgba(201, 169, 97, 0.55);
 }
+
+/* sheen sweep on hover */
+.pk-button::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.45s ease;
+}
+
 .pk-button:hover {
-  filter: brightness(1.08);
   transform: translateY(-1px);
+  box-shadow: 0 14px 32px -10px rgba(201, 169, 97, 0.7);
 }
+
+.pk-button:hover::after {
+  left: 120%;
+}
+
 .pk-button:active {
   transform: translateY(0);
 }
+
 .pk-button:focus-visible {
   outline: 2px solid var(--pk-accent);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 
 .pk-status {
   margin: 0;
   color: var(--pk-muted);
+  font-size: 13.5px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
 }
+
 .pk-status[aria-busy="true"]::before {
   content: "";
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
-  border: 2px solid var(--pk-muted);
+  border: 2px solid var(--pk-accent);
   border-top-color: transparent;
   animation: pk-spin 0.7s linear infinite;
 }
+
 .pk-status--blocked {
   color: var(--pk-blocker);
 }
+
 @keyframes pk-spin {
   to {
     transform: rotate(360deg);
@@ -60,17 +89,25 @@
 
 .pk-error {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  justify-items: start;
+}
+
+.pk-error p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
   color: var(--pk-blocker);
 }
 
 .pk-success {
-  animation: pk-fade 0.25s ease;
+  animation: pk-fade 0.3s ease;
 }
+
 @keyframes pk-fade {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(5px);
   }
   to {
     opacity: 1;
@@ -85,16 +122,32 @@
   display: grid;
   gap: 8px;
 }
+
 .pk-notice {
-  font-size: 13px;
-  line-height: 1.45;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: color-mix(in srgb, currentColor 9%, transparent);
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 10px 13px;
+  border-radius: 10px;
+  text-align: left;
 }
+
 .pk-notice--blocker {
   color: var(--pk-blocker);
+  background: rgba(212, 118, 106, 0.08);
+  border: 1px solid rgba(212, 118, 106, 0.22);
 }
+
 .pk-notice--advisory {
   color: var(--pk-advisory);
+  background: rgba(217, 160, 91, 0.07);
+  border: 1px solid rgba(217, 160, 91, 0.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pk-button::after {
+    display: none;
+  }
+  .pk-success {
+    animation: none;
+  }
 }

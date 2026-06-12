@@ -13,7 +13,9 @@ import { deriveRules, emitRulesModule } from './rules'
 const here = dirname(fileURLToPath(import.meta.url))
 
 const CORE_RULES_PATH = resolve(here, '../../../core/src/generated/compat-rules.gen.ts')
-const GUIDE_PATH = resolve(here, '../../generated/compatibility-guide.md')
+// The guide is published through the docs site, generated straight into it so it
+// is regenerated alongside the rules and cannot drift from the data.
+const GUIDE_PATH = resolve(here, '../../../../apps/docs/compatibility.md')
 
 function write(path: string, contents: string): void {
   mkdirSync(dirname(path), { recursive: true })

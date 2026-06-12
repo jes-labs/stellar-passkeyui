@@ -1,3 +1,7 @@
+// Explicit import: browsers have no Buffer global. Bare 'buffer' on purpose —
+// see the note in address.ts.
+// biome-ignore lint/style/useNodejsImportProtocol: bundlers must resolve the browser package
+import { Buffer } from 'buffer'
 import { hash, xdr } from '@stellar/stellar-sdk'
 
 // The payload a passkey signs for a transaction is the hash of the Soroban

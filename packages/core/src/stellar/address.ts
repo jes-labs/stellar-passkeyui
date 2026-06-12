@@ -1,12 +1,15 @@
+// Imported explicitly rather than relying on a Node global: browsers have no
+// Buffer, and the XDR layer needs real Buffer instances. The bare 'buffer'
+// specifier is deliberate — Node resolves it to the builtin, bundlers resolve
+// it to the browser-capable buffer package. 'node:buffer' would break browsers.
+// biome-ignore lint/style/useNodejsImportProtocol: see above
+import { Buffer } from 'buffer'
 import { Address, StrKey, hash, xdr } from '@stellar/stellar-sdk'
 
 // A smart wallet's address is derived deterministically from the deployer and a
 // salt, so a client can know the address before the wallet is deployed. We use
 // the credential id as the salt source, matching the passkey-kit lineage, which
 // ties one passkey to one predictable wallet address.
-//
-// Note: this relies on a global Buffer, which Node provides and Stellar browser
-// apps already polyfill (the SDK itself depends on it).
 export interface DeriveWalletAddressArgs {
   /** The account or contract that deploys the wallet (G… or C…). */
   deployer: string
