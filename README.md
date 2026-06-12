@@ -8,7 +8,7 @@ https://github.com/user-attachments/assets/5d2f221b-c8c9-4599-b087-e345a77c4b04
 
 **Live demos:**
 
-- [stellar-passkey-demo.vercel.app](https://stellar-passkey-demo.vercel.app/) — Aurum, the reference wallet experience: create a smart wallet with your fingerprint and sign a transaction, right in the browser.
+- [stellar-passkey-demo.vercel.app](https://stellar-passkey-demo.vercel.app/) — Aurum, the reference wallet experience, live on testnet: create a smart wallet with your fingerprint, watch it deploy on-chain, and send a real payment your passkey authorizes — explorer link included. (Append `?mode=offline` for the network-free variant.)
 - [wallet-passkey-demo.vercel.app](https://wallet-passkey-demo.vercel.app/) — the kit integration: the passkey module inside the real Stellar Wallets Kit, next to Freighter, Albedo, xBull, and Lobstr.
 
 The goal is narrow and practical: let a wallet team add passkey sign-in to a Soroban smart account without rebuilding the WebAuthn plumbing, the on-chain signing logic, or — the part that actually hurts — the cross-device compatibility knowledge that decides whether a passkey flow works on a user's phone or silently fails.

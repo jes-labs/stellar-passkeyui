@@ -9,7 +9,7 @@ test('mobile: no overflow on onboard and wallet views', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 })
   const client = await enableWebAuthn(page)
   await addVirtualAuthenticator(client)
-  await page.goto('/')
+  await page.goto('/?mode=offline')
   await page.waitForTimeout(1200)
   expect(await noHorizontalOverflow(page), 'onboard overflows').toBe(true)
   await page.screenshot({ path: '/tmp/aurum-mobile-onboard.png' })
