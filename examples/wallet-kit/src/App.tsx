@@ -13,7 +13,7 @@ import { type Flow, createCreatePasskeyFlow, createSignFlow } from '@passkey-ui/
 import { CreatePasskey, SignTransaction, useFlow } from '@passkey-ui/ui/react'
 import { PasskeyModule } from '@passkey-ui/wallet-kit'
 import { Networks } from '@stellar/stellar-sdk'
-import { useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import { recordCreate, recordSign } from './test-hook'
 
 const NETWORK = Networks.TESTNET
@@ -190,7 +190,7 @@ function WalletView({ credential }: { credential: CreatePasskeyResult }) {
             other wallets:
           </p>
           <ModuleBadge />
-          <pre className="code">{REGISTER_SNIPPET}</pre>
+          <HighlightedCode code={REGISTER_SNIPPET} />
         </div>
       </details>
     </section>
@@ -319,6 +319,42 @@ function ModuleBadge() {
         <span className="module-badge__meta"> · {module.productId}</span>
       </span>
     </div>
+  )
+}
+
+// A 20-line highlighter is all the snippet needs; no syntax library required.
+// Order matters: comments win over strings win over keywords over type names.
+const TOKEN_PATTERN = /(\/\/.*$)|('[^']*')|\b(import|from|new)\b|\b([A-Z][A-Za-z0-9]*)\b/gm
+
+function HighlightedCode({ code }: { code: string }) {
+  const nodes: ReactNode[] = []
+  let cursor = 0
+
+  for (const match of code.matchAll(TOKEN_PATTERN)) {
+    const index = match.index ?? 0
+    if (index > cursor) nodes.push(code.slice(cursor, index))
+
+    const [text, comment, string, keyword] = match
+    const className = comment
+      ? 'tok-comment'
+      : string
+        ? 'tok-string'
+        : keyword
+          ? 'tok-keyword'
+          : 'tok-type'
+    nodes.push(
+      <span key={index} className={className}>
+        {text}
+      </span>,
+    )
+    cursor = index + text.length
+  }
+  if (cursor < code.length) nodes.push(code.slice(cursor))
+
+  return (
+    <pre className="code">
+      <code>{nodes}</code>
+    </pre>
   )
 }
 
