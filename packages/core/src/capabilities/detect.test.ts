@@ -55,6 +55,33 @@ describe('detectCapabilities', () => {
     expect(caps.platformAuthenticator).toBe(false)
     expect(caps.conditionalMediation).toBe(true)
   })
+
+  // Brave and Opera hide behind a Chrome user-agent string but declare their
+  // real name in the client-hint brands, so the brand must win for display.
+  test('resolves the true brand from client hints', async () => {
+    const brave = await detectCapabilities(
+      fakeEnv({ brands: ['Brave', 'Chromium', 'Not_A Brand'] }),
+    )
+    expect(brave.brand).toBe('Brave')
+    expect(brave.browser).toBe('chrome')
+
+    const edge = await detectCapabilities(
+      fakeEnv({ brands: ['Microsoft Edge', 'Chromium', 'Not;A=Brand'] }),
+    )
+    expect(edge.brand).toBe('Edge')
+
+    const chrome = await detectCapabilities(
+      fakeEnv({ brands: ['Google Chrome', 'Chromium', 'Not.A/Brand'] }),
+    )
+    expect(chrome.brand).toBe('Chrome')
+  })
+
+  test('omits the brand when client hints are absent or only grease', async () => {
+    expect((await detectCapabilities(fakeEnv())).brand).toBeUndefined()
+    expect(
+      (await detectCapabilities(fakeEnv({ brands: ['Chromium', 'Not A;Brand'] }))).brand,
+    ).toBeUndefined()
+  })
 })
 
 describe('browserEnvironment', () => {

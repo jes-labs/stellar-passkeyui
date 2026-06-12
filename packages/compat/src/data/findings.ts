@@ -144,7 +144,12 @@ export const findings: readonly CompatFinding[] = [
       'https://web.dev/articles/passkey-form-autofill',
       'https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredential/isConditionalMediationAvailable_static',
     ],
-    verification: { method: 'documented', lastVerified: VERIFIED },
+    verification: {
+      method: 'documented',
+      lastVerified: '2026-06-12',
+      notes:
+        'Confirmed on real hardware 2026-06-12: Firefox on Android lacks conditional mediation and the SDK fell back to the explicit button, while Firefox on macOS reported it available. See the device sessions.',
+    },
     runtime: { condition: 'no-conditional-mediation', action: 'show-explicit-passkey-button' },
   },
   {

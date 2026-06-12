@@ -17,7 +17,7 @@ export async function detectCapabilities(
       ])
     : [false, false]
 
-  return {
+  const capabilities: Capabilities = {
     webauthnAvailable: env.webauthnAvailable,
     secureContext: env.secureContext,
     inIframe: env.inIframe,
@@ -27,6 +27,27 @@ export async function detectCapabilities(
     browser: family,
     engine,
   }
+
+  const brand = resolveBrand(env.brands)
+  if (brand) capabilities.brand = brand
+
+  return capabilities
+}
+
+// Pick the marketing name out of the client-hint brand list. The list carries
+// grease entries ("Not.A/Brand") and the generic "Chromium"; the real brand is
+// whatever remains. "Google Chrome" / "Microsoft Edge" are shortened to read
+// naturally in a UI.
+function resolveBrand(brands: readonly string[] | undefined): string | undefined {
+  if (!brands || brands.length === 0) return undefined
+
+  const meaningful = brands.filter((brand) => {
+    const letters = brand.replace(/[^a-z]/gi, '').toLowerCase()
+    return letters !== 'notabrand' && brand !== 'Chromium'
+  })
+  const first = meaningful[0]
+  if (!first) return undefined
+  return first.replace(/^Google /, '').replace(/^Microsoft /, '')
 }
 
 // A probe that throws or rejects is treated as "feature absent" rather than

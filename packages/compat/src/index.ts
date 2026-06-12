@@ -3,7 +3,7 @@
 // generated rules file, not this package, at runtime.
 
 export * from './schema'
-export { findings } from './data'
+export { findings, sessions } from './data'
 export { generateGuide, type GuideOptions } from './publish/guide'
 export {
   type CompatRule,

@@ -155,3 +155,43 @@ export function dataAsOf(findings: readonly CompatFinding[]): string {
     if (finding.verification.lastVerified > latest) latest = finding.verification.lastVerified
   return latest
 }
+
+/**
+ * A manual test session on real hardware: who-knows-what evidence the automated
+ * harness cannot produce. Each session records exactly what was confirmed and
+ * where, so the guide can show real-device coverage honestly.
+ */
+export interface ManualSession {
+  id: string
+  /** ISO date, YYYY-MM-DD. */
+  date: string
+  device: string
+  os: OperatingSystem
+  /** The browser as the tester knew it (brand, not engine). */
+  browser: string
+  authenticator: string
+  outcome: Outcome
+  /** Exactly what was confirmed, in plain words. */
+  confirmed: string
+  /** Where the test ran. */
+  url: string
+}
+
+export function validateSessions(sessions: readonly ManualSession[]): string[] {
+  const errors: string[] = []
+  const seen = new Set<string>()
+
+  for (const session of sessions) {
+    const where = session.id || '(session with no id)'
+    if (!session.id) errors.push('a session is missing its id')
+    else if (seen.has(session.id)) errors.push(`duplicate session id: ${session.id}`)
+    else seen.add(session.id)
+
+    if (!ISO_DATE.test(session.date)) errors.push(`${where}: date "${session.date}" is not ISO`)
+    if (!session.device) errors.push(`${where}: missing device`)
+    if (!session.confirmed) errors.push(`${where}: missing confirmed description`)
+    if (!session.url) errors.push(`${where}: missing url`)
+  }
+
+  return errors
+}

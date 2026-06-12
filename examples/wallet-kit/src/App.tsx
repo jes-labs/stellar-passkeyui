@@ -286,7 +286,7 @@ function DeviceStrip() {
           </li>
         ))}
         <li className="light light--meta">
-          {capabilities.browser} · {capabilities.engine}
+          {(capabilities.brand ?? capabilities.browser).toLowerCase()} · {capabilities.engine}
         </li>
       </ul>
       {notices.length > 0 && (
