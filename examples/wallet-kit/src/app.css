@@ -66,6 +66,8 @@ body::after {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 8px 16px;
+  flex-wrap: wrap;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--line-soft);
 }
@@ -279,6 +281,15 @@ body::after {
   display: grid;
   gap: 16px;
   padding: 28px 0;
+}
+
+/* Grid items refuse to shrink below their content width by default, which lets
+   long monospace values push cards past the viewport on phones. */
+.wallet > *,
+.drawer__body,
+.panel,
+.field {
+  min-width: 0;
 }
 
 .wallet-card {
@@ -539,6 +550,7 @@ body::after {
   border-radius: 10px;
   padding: 14px;
   overflow-x: auto;
+  max-width: 100%;
   margin: 0;
 }
 
@@ -569,6 +581,65 @@ body::after {
   outline: 2px solid var(--brass);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* ---- small screens ------------------------------------------------------ */
+
+@media (max-width: 520px) {
+  .app {
+    padding: 20px 16px 48px;
+  }
+
+  .masthead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .masthead__meta {
+    letter-spacing: 0.1em;
+  }
+
+  .onboard {
+    padding-top: 32px;
+  }
+
+  .orb {
+    width: 104px;
+    height: 104px;
+    margin-bottom: 28px;
+  }
+
+  .wallet-card,
+  .panel {
+    padding: 18px 16px;
+    border-radius: 14px;
+  }
+
+  .ledger__row {
+    flex-wrap: wrap;
+    gap: 4px 16px;
+  }
+
+  .ledger__row dd {
+    word-break: break-word;
+  }
+
+  .field__value {
+    font-size: 11.5px;
+  }
+
+  .field__value--address {
+    font-size: 12px;
+  }
+
+  .drawer summary {
+    padding: 13px 15px;
+  }
+
+  .drawer__body {
+    padding: 2px 15px 15px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
