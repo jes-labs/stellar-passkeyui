@@ -13,6 +13,8 @@
     "build": "pnpm -r --filter \"./packages/*\" run build",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:dist": "node scripts/dist-smoke.mjs",
+    "test:e2e": "pnpm --filter @passkey-ui/e2e run test",
     "typecheck": "pnpm -r run typecheck",
     "lint": "biome check .",
     "format": "biome check --write ."

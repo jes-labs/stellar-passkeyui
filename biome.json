@@ -39,7 +39,7 @@
   },
   "overrides": [
     {
-      "include": ["**/publish/build.ts"],
+      "include": ["**/publish/build.ts", "scripts/**"],
       "linter": {
         "rules": {
           "suspicious": {

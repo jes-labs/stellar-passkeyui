@@ -47,6 +47,23 @@ describe('PasskeyFlow', () => {
     expect(screen.queryByRole('button', { name: 'Go' })).toBeNull()
   })
 
+  test('a single click from idle runs the check and the ceremony', async () => {
+    const flow = createFlow({ ...healthyDeps, run: () => Promise.resolve('ok') })
+    render(
+      <PasskeyFlow flow={flow} autoStart={false} labels={{ action: 'Go', success: 'Done!' }} />,
+    )
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'Go' }).click()
+      // Let the start -> ready -> proceed chain settle.
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(flow.store.getState().phase).toBe('success')
+    expect(screen.getByText('Done!')).toBeTruthy()
+  })
+
   test('renders a retryable error with a retry button', async () => {
     let attempts = 0
     const flow = createFlow({

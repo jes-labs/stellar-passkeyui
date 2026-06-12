@@ -35,6 +35,14 @@ export function PasskeyFlow<Result>({
 }: PasskeyFlowProps<Result>) {
   const { state, start, proceed, retry } = useFlow(flow, { autoStart })
 
+  // One click should mean one ceremony. From idle, run the capability check and,
+  // if nothing blocks, continue straight into the ceremony in the same gesture —
+  // otherwise a flow without autoStart would need a second click.
+  const onAction = async () => {
+    if (flow.store.getState().phase === 'idle') await start()
+    if (flow.store.getState().phase === 'ready') await proceed()
+  }
+
   const style = {
     ...(themeToCssVariables(theme) as CSSProperties),
     fontFamily: 'var(--pk-font-family)',
@@ -50,11 +58,7 @@ export function PasskeyFlow<Result>({
       <NoticeList notices={state.notices} />
 
       {(state.phase === 'idle' || state.phase === 'ready') && (
-        <button
-          type="button"
-          className="pk-button"
-          onClick={() => void (state.phase === 'idle' ? start() : proceed())}
-        >
+        <button type="button" className="pk-button" onClick={() => void onAction()}>
           {labels.action ?? 'Continue'}
         </button>
       )}
