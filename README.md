@@ -73,17 +73,22 @@ This is a pnpm monorepo. The SDK core is kept deliberately thin and framework-fr
 
 ```
 packages/
-  core/        framework-free SDK: WebAuthn, key + signature parsing,
-               challenge construction, wallet operations, capability detection
+  core/        framework-free SDK: WebAuthn, key + signature parsing, challenge
+               construction, wallet operations, capability detection, the
+               contract signature encoding, and a wallet-state reader
   compat/      the compatibility matrix as data, plus the pipeline that
                generates the SDK fallback rules and the published guide
   ui/          create / sign / recover flows, framework-agnostic, with React
                components as the reference binding; themeable, no design system
   wallet-kit/  a Stellar Wallets Kit module backed by the core SDK
 examples/
-  wallet-kit/  the SDK used through the kit (the reference integration + demo)
+  wallet-kit/        Aurum — the reference wallet experience, live on testnet
+  kit-integration/   the module running inside the real Stellar Wallets Kit
 apps/
   docs/        the guide and API docs, with the guide generated from compat data
+e2e/           Playwright browser tests against a virtual authenticator, plus the
+               testnet runner; the automated half of the compatibility harness
+scripts/       dist-smoke: import every built package the way a consumer would
 ```
 
 ## Relationship to existing work
@@ -100,7 +105,7 @@ The full smart-wallet flow runs against live testnet, reproducible with `pnpm --
 
 - [Passkey-signed payment](https://stellar.expert/explorer/testnet/tx/dd2d9815ee1a3ea34e95bf58fd2658ba3892a5e47d7bb758c50f75ef49e9c534) · [wallet contract](https://stellar.expert/explorer/testnet/contract/CBKYYID4SL7BWPM6IMYDN6RJ3HWTSG254HRQLGBRWA3VUDIZIFK7YWVH) · [deploy](https://stellar.expert/explorer/testnet/tx/599002d3a0970c54a71d239e0814aee931ad832e5bdb54fd71d17dc82586d69c)
 
-The signature ScVal encoding is byte-identical to what the contract's Rust SDK produces, checked by generating both from the same fixture.
+Recovery and reconnect are verified live too: a browser end-to-end test (`E2E_LIVE=1`) creates a passkey, pays out of the wallet, adds a second passkey as a signer on-chain ([add_signer](https://stellar.expert/explorer/testnet/tx/5d832ba1f26321f2fa1de7b0ded4b12e5aabb00185cb7ba30d771e6e71d147bd)), then reloads and reconnects to the same wallet. The signature ScVal encoding is byte-identical to what the contract's Rust SDK produces, checked by generating both from the same fixture.
 
 ## Verified on real devices
 
@@ -113,20 +118,18 @@ The reference demo has been exercised by hand on real hardware. Each session rec
 | Android phone | Chrome, Edge, Opera Mini | Fingerprint | ✅ passkey flow |
 | Android phone | Firefox | Fingerprint | ⚠️ works; no autofill — the SDK fell back to the explicit button, as the matrix documents |
 
-Automated coverage runs in CI-style fashion against Chromium's virtual authenticator (see `e2e/`), exercising create, sign, user-verification degradation, and the lost-credential recovery path on every change.
+Automated coverage runs in CI on every change (see `.github/workflows/`) against Chromium's virtual authenticator, exercising create, sign, user-verification degradation, and the lost-credential recovery path. A second workflow re-runs those cells weekly so a browser or OS change that breaks one is caught, not silently left to rot.
 
 ## Project status
 
-The work was sequenced so the riskiest, most testable parts came first. The pieces below are built and covered by tests that check against independent references — Node's own crypto, the OpenSSL CLI, the curve generator point, and the Stellar SDK's own preimage construction — rather than against the implementation itself.
+Everything the project sets out to build is implemented, tested, and — where it touches the chain — verified on live testnet. The pieces are covered by tests that check against independent references (Node's own crypto, the OpenSSL CLI, the curve generator point, the Stellar SDK's own preimage construction, and the contract's own `__check_auth`) rather than against the implementation itself.
 
-Built and verified, end to end offline:
+- **The core SDK** — P-256 key extraction (DER SPKI and raw COSE), DER-to-compact low-S signatures, the WebAuthn signing digest, capability detection and the documented-fallback engine, the create and sign ceremonies, deterministic address derivation, the Soroban authorization payload, the contract signature encoding (byte-checked against the Rust SDK), a wallet-state reader, and a Launchtube submitter.
+- **The compatibility layer** — the matrix as structured data, one generator producing both the published guide and the SDK's runtime fallback rules, so the two cannot drift. CI fails if the committed guide drifts from its data.
+- **The UI** — a framework-agnostic flow layer that maps the matrix's conditions onto UI states, with React components as the reference binding. The demo does real create, sign, recover (add-signer), and reconnect against testnet.
+- **The Stellar Wallets Kit module** — implemented inside the kit and proposed upstream in [PR #94](https://github.com/Creit-Tech/Stellar-Wallets-Kit/pull/94), with a reference integration that registers it in the kit's own wallet picker.
 
-- **The core SDK** — P-256 key extraction from both DER SPKI keys and raw COSE authenticator data, DER-to-compact signatures with low-S normalization, the WebAuthn signing digest, capability detection and the documented-fallback engine, the create and sign ceremony wrappers, deterministic wallet-address derivation, the Soroban authorization payload, and a Launchtube submitter.
-- **The compatibility layer** — the matrix as structured data, with one generator producing both the published guide and the SDK's runtime fallback rules, so the two cannot drift.
-- **The UI** — a framework-agnostic flow layer that maps the matrix's conditions onto UI states, with React components as the reference binding.
-- **The Stellar Wallets Kit module** and a reference demo that performs real passkey creation, address derivation, and signing entirely in the browser.
-
-Gated on coordination, not yet verifiable here: the on-chain pieces that depend on the deployed smart-wallet contract bindings — encoding the passkey signature into the contract's authorization ScVal, and the factory deployment. The SDK exposes a clean adapter seam for these, and they are the subject of the coordination with the contract maintainer that the design calls for. The compatibility entries are sourced from specifications and vendor documentation and are marked accordingly; confirming them on real hardware is the next stage of the documentation work.
+What remains is not code. The module's adoption into Stellar Wallets Kit is a pull request under review by its maintainers, and coordination with the passkey-kit maintainer on the contract lineage is ongoing — both are the ecosystem alignment the RFP requires, and both are happening in public. The compatibility matrix keeps growing as more real devices are covered; each entry carries its verification method and date so a reader can see exactly what has been confirmed.
 
 ## Development
 
@@ -134,12 +137,28 @@ Requires Node 20+ and pnpm.
 
 ```bash
 pnpm install
-pnpm test         # run the full test suite
-pnpm typecheck    # strict type checking across packages
-pnpm build        # build the libraries
-pnpm lint         # Biome
-pnpm format       # apply formatting
+pnpm build          # build the libraries (run before typecheck on a clean checkout)
+pnpm test           # unit suite
+pnpm test:dist      # import every built package the way a consumer would
+pnpm typecheck      # strict type checking across packages
+pnpm lint           # Biome
+pnpm format         # apply formatting
 ```
+
+Browser end-to-end tests use Chromium with a virtual authenticator and run hermetically (the demo's offline mode, no network):
+
+```bash
+pnpm --filter @passkey-ui/e2e exec playwright install chromium
+pnpm test:e2e
+```
+
+The full flow against live testnet — deploy a wallet, fund it, and make a passkey-signed payment — is one script:
+
+```bash
+pnpm --filter @passkey-ui/e2e exec tsx testnet/run.ts
+```
+
+`examples/kit-integration` is standalone (it consumes the kit built from the upstream PR branch via a `file:` dependency), so it installs and runs on its own; see its README.
 
 ## License
 
