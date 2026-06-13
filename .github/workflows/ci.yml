@@ -27,14 +27,16 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # Build first: packages emit their .d.ts here, and the packages that
+      # depend on @passkey-ui/core resolve its types from dist during type-check.
+      - name: Build libraries
+        run: pnpm build
+
       - name: Lint
         run: pnpm lint
 
       - name: Type-check
         run: pnpm -r run typecheck
-
-      - name: Build libraries
-        run: pnpm build
 
       - name: Unit tests
         run: pnpm test
