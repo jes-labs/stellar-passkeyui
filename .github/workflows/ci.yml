@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, types, build, tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Build first: packages emit their .d.ts here, and the packages that
+      # depend on @passkey-ui/core resolve its types from dist during type-check.
+      - name: Build libraries
+        run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type-check
+        run: pnpm -r run typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Dist smoke (consumer-grade import of every built package)
+        run: node scripts/dist-smoke.mjs
+
+      # The guide and the SDK's runtime rules are generated from the same data.
+      # Regenerate and fail if the committed output drifted from the source —
+      # the mechanism that keeps the compatibility guide from going stale.
+      - name: Compatibility guide is in sync with its data
+        run: |
+          pnpm --filter @passkey-ui/compat run generate
+          git diff --exit-code -- \
+            apps/docs/compatibility.md \
+            packages/core/src/generated/compat-rules.gen.ts
+
+  e2e:
+    name: Browser E2E (virtual authenticator)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build libraries
+        run: pnpm build
+
+      - name: Install Chromium
+        run: pnpm --filter @passkey-ui/e2e exec playwright install --with-deps chromium
+
+      # The hermetic suite drives the demo in offline mode against a real CDP
+      # virtual authenticator: create, sign, user-verification degradation, and
+      # lost-credential recovery. No network, so it is deterministic in CI.
+      - name: Run end-to-end tests
+        run: pnpm --filter @passkey-ui/e2e exec playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7

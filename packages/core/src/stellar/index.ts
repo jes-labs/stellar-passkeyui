@@ -28,3 +28,12 @@ export {
   passkeyKitSignatureScVal,
   attachSignatureToEntry,
 } from './encoder'
+export {
+  type WalletStateReader,
+  type WalletStateSource,
+  type SignerKeySummary,
+  type LedgerEntriesRpc,
+  rpcWalletStateReader,
+  secp256r1SignerLedgerKey,
+  contractInstanceLedgerKey,
+} from './wallet-state'

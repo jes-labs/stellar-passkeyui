@@ -11,6 +11,7 @@ import {
   deriveWalletAddress,
   passkeyKitSignatureScVal,
   payloadForAuthEntry,
+  rpcWalletStateReader,
   toBase64Url,
 } from '@passkey-ui/core'
 import type { SignWithPasskeyResult } from '@passkey-ui/core'
@@ -47,7 +48,12 @@ export interface Session {
   publicKey: string
 }
 
-// One session per page load; the same account deploys and pays for everything.
+// The session account persists per browser (localStorage), so the deployer —
+// and therefore every credential's derived wallet address — is stable across
+// page loads. That is what lets "I already have a wallet" reconnect to the
+// same wallet instead of deploying a new one. Single-flight as before.
+const SESSION_STORAGE_KEY = 'aurum:session-secret'
+
 let sessionPromise: Promise<Session> | undefined
 
 export function getSession(): Promise<Session> {
@@ -56,19 +62,48 @@ export function getSession(): Promise<Session> {
 }
 
 async function createSession(): Promise<Session> {
-  const keypair = Keypair.random()
+  const keypair = restoreSessionKeypair() ?? Keypair.random()
   const publicKey = keypair.publicKey()
+
+  // Fund only when the account does not exist yet (testnet resets included).
+  try {
+    await server.getAccount(publicKey)
+    persistSessionKeypair(keypair)
+    return { keypair, publicKey }
+  } catch {
+    // not funded yet
+  }
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const response = await fetch(`https://friendbot.stellar.org?addr=${publicKey}`)
-      if (response.ok) return { keypair, publicKey }
+      if (response.ok) {
+        persistSessionKeypair(keypair)
+        return { keypair, publicKey }
+      }
     } catch {
       // retry below
     }
     await new Promise((resolve) => setTimeout(resolve, 1500 * attempt))
   }
   throw new Error('Could not fund the session account via friendbot. Try reloading.')
+}
+
+function restoreSessionKeypair(): Keypair | undefined {
+  try {
+    const secret = localStorage.getItem(SESSION_STORAGE_KEY)
+    return secret ? Keypair.fromSecret(secret) : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function persistSessionKeypair(keypair: Keypair): void {
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, keypair.secret())
+  } catch {
+    // Private mode: the session simply will not survive a reload.
+  }
 }
 
 export function walletAddressFor(session: Session, credentialId: Uint8Array): string {
@@ -146,7 +181,7 @@ export async function deployWallet(
   )
 }
 
-async function contractExists(contractId: string): Promise<boolean> {
+export async function contractExists(contractId: string): Promise<boolean> {
   try {
     await server.getContractData(
       contractId,
@@ -244,6 +279,99 @@ export async function sendPayment(
     signatureHex: toHex(assertion.signature),
     signedEntryXdr: entry.toXDR('base64'),
   }
+}
+
+/**
+ * Reconnect to an existing wallet: the discoverable assertion proves which
+ * credential the user holds, the stable per-browser deployer makes its address
+ * derivable, and the chain says whether that wallet actually exists.
+ */
+export async function connectWallet(
+  signDiscoverable: (challenge: Uint8Array) => Promise<SignWithPasskeyResult>,
+): Promise<{ credentialId: Uint8Array; walletAddress: string }> {
+  const assertion = await signDiscoverable(crypto.getRandomValues(new Uint8Array(32)))
+  const session = await getSession()
+  const walletAddress = walletAddressFor(session, assertion.credentialId)
+
+  if (!(await contractExists(walletAddress))) {
+    throw new Error(
+      'No wallet exists for this passkey on this browser. Create a new wallet instead.',
+    )
+  }
+  return { credentialId: assertion.credentialId, walletAddress }
+}
+
+/**
+ * Recovery is signer management: enroll a new passkey, then add_signer on the
+ * wallet contract, authorized by the passkey you already control. The contract
+ * argument is encoded through the generated bindings spec, the authorization
+ * through the same passkey path as payments.
+ */
+export async function addSignerToWallet(options: {
+  session: Session
+  walletAddress: string
+  currentCredentialId: Uint8Array
+  newCredentialId: Uint8Array
+  newPublicKey: Uint8Array
+  signPayload: (payload: Uint8Array) => Promise<SignWithPasskeyResult>
+}): Promise<string> {
+  const { session, walletAddress } = options
+
+  const client = new PasskeyClient({
+    contractId: walletAddress,
+    networkPassphrase: NETWORK,
+    rpcUrl: RPC_URL,
+  })
+  const args = client.spec.funcArgsToScVals('add_signer', {
+    signer: {
+      tag: 'Secp256r1',
+      values: [
+        bufferFrom(options.newCredentialId),
+        bufferFrom(options.newPublicKey),
+        [undefined],
+        [undefined],
+        { tag: 'Persistent', values: undefined },
+      ],
+    },
+  })
+
+  const unsignedTx = await buildTx(session, new Contract(walletAddress).call('add_signer', ...args))
+  const sim = await server.simulateTransaction(unsignedTx)
+  if (rpc.Api.isSimulationError(sim)) throw new Error(`simulation failed: ${sim.error}`)
+  const entry = sim.result?.auth?.[0]
+  if (!entry) throw new Error('simulation returned no auth entry for the wallet')
+
+  const latest = await server.getLatestLedger()
+  entry
+    .credentials()
+    .address()
+    .signatureExpirationLedger(latest.sequence + 100)
+
+  const payload = payloadForAuthEntry(entry, NETWORK)
+  const assertion = await options.signPayload(payload)
+  attachSignatureToEntry(
+    entry,
+    passkeyKitSignatureScVal({
+      credentialId: assertion.credentialId,
+      authenticatorData: assertion.authenticatorData,
+      clientDataJSON: assertion.clientDataJSON,
+      signature: assertion.signature,
+    }),
+  )
+
+  const invokeOp = unsignedTx.operations[0] as Operation.InvokeHostFunction
+  const signedTx = await buildTx(
+    session,
+    Operation.invokeHostFunction({ func: invokeOp.func, auth: [entry] }),
+  )
+  const txHash = await prepareSignSubmit(session, signedTx)
+
+  // The reader must see the new signer; anything else is a failure.
+  const reader = rpcWalletStateReader(server)
+  if (!(await reader.hasSecp256r1Signer(walletAddress, options.newCredentialId))) {
+    throw new Error('the new signer did not appear on the wallet')
+  }
+  return txHash
 }
 
 async function walletBalance(session: Session, walletAddress: string): Promise<bigint> {

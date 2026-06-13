@@ -756,3 +756,72 @@ a.copy--link {
   display: inline-flex;
   align-items: center;
 }
+
+.onboard__secondary {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin-bottom: 36px;
+}
+
+/* The reconnect action shares the create button's design language (pill, sheen,
+   hover lift) as the outlined-brass secondary variant. */
+.reconnect-btn {
+  position: relative;
+  overflow: hidden;
+  appearance: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background: transparent;
+  color: var(--brass-bright);
+  border: 1px solid var(--brass-deep);
+  padding: 12px 26px;
+  border-radius: 999px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.reconnect-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(232, 213, 163, 0.22), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.45s ease;
+}
+
+.reconnect-btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--brass);
+  color: #fff;
+  box-shadow: 0 12px 30px -14px rgba(201, 169, 97, 0.55);
+}
+
+.reconnect-btn:hover::after {
+  left: 120%;
+}
+
+.reconnect-btn:active {
+  transform: translateY(0);
+}
+
+.reconnect-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.reconnect-btn:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reconnect-btn::after {
+    display: none;
+  }
+}

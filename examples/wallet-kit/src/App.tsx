@@ -8,15 +8,28 @@ import {
   detectCapabilities,
   selectFallbacks,
   signWithPasskey,
+  toBase64Url,
 } from '@passkey-ui/core'
-import { type Flow, createCreatePasskeyFlow, createSignFlow } from '@passkey-ui/ui'
-import { CreatePasskey, SignTransaction, useFlow } from '@passkey-ui/ui/react'
+import {
+  type Flow,
+  createCreatePasskeyFlow,
+  createRecoverFlow,
+  createSignFlow,
+} from '@passkey-ui/ui'
+import { CreatePasskey, Recover, SignTransaction, useFlow } from '@passkey-ui/ui/react'
 import { PasskeyModule } from '@passkey-ui/wallet-kit'
 import { Networks } from '@stellar/stellar-sdk'
 import { type ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
-import { chainStore, startChainSetup } from './chain-setup'
+import { type WalletIdentity, chainStore, startChainSetup } from './chain-setup'
 import { recordCreate, recordSign } from './test-hook'
-import { EXPLORER, type PaymentResult, type Session, sendPayment } from './testnet'
+import {
+  EXPLORER,
+  type PaymentResult,
+  type Session,
+  addSignerToWallet,
+  connectWallet,
+  sendPayment,
+} from './testnet'
 
 const NETWORK = Networks.TESTNET
 
@@ -48,6 +61,15 @@ const createInput = {
   },
 }
 
+const backupInput = {
+  rp: { name: 'Aurum' },
+  user: {
+    id: new TextEncoder().encode('aurum-backup-signer'),
+    name: 'backup@aurum',
+    displayName: 'Aurum Backup',
+  },
+}
+
 // Offline mode signs this stand-in payload instead of a live auth entry.
 const DEMO_PAYLOAD = new Uint8Array(32).map((_, i) => (i * 7 + 3) % 256)
 
@@ -70,7 +92,9 @@ export function App() {
     [],
   )
   const { state } = useFlow(createFlow, { autoStart: true })
-  const wallet = state.phase === 'success' ? state.result : undefined
+  const [reconnected, setReconnected] = useState<WalletIdentity | undefined>()
+  const created = state.phase === 'success' ? state.result : undefined
+  const identity: WalletIdentity | undefined = reconnected ?? created
 
   return (
     <div className="app">
@@ -85,7 +109,11 @@ export function App() {
       </header>
 
       <main className="stage">
-        {wallet ? <WalletView credential={wallet} /> : <Onboard flow={createFlow} />}
+        {identity ? (
+          <WalletView identity={identity} />
+        ) : (
+          <Onboard flow={createFlow} onReconnected={setReconnected} />
+        )}
       </main>
 
       <footer className="colophon">
@@ -101,7 +129,39 @@ export function App() {
   )
 }
 
-function Onboard({ flow }: { flow: Flow<CreatePasskeyResult> }) {
+function Onboard({
+  flow,
+  onReconnected,
+}: {
+  flow: Flow<CreatePasskeyResult>
+  onReconnected: (identity: WalletIdentity) => void
+}) {
+  const [connectError, setConnectError] = useState<string | undefined>()
+  const [connecting, setConnecting] = useState(false)
+
+  const reconnect = async () => {
+    setConnectError(undefined)
+    setConnecting(true)
+    try {
+      // The kit module's pattern: a discoverable assertion proves which
+      // credential the user holds; the chain says whether its wallet exists.
+      const { credentialId, walletAddress } = await connectWallet((challenge) =>
+        signWithPasskey({ challenge }),
+      )
+      void walletAddress
+      const identity: WalletIdentity = {
+        credentialId,
+        credentialIdBase64Url: toBase64Url(credentialId),
+      }
+      startChainSetup(identity)
+      onReconnected(identity)
+    } catch (e) {
+      setConnectError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setConnecting(false)
+    }
+  }
+
   return (
     <section className="onboard">
       <div className="orb" aria-hidden="true">
@@ -126,6 +186,20 @@ function Onboard({ flow }: { flow: Flow<CreatePasskeyResult> }) {
         <CreatePasskey flow={flow} theme={AURUM_THEME} renderSuccess={() => null} />
       </div>
 
+      {!OFFLINE && (
+        <div className="onboard__secondary reveal" style={{ animationDelay: '420ms' }}>
+          <button
+            type="button"
+            className="reconnect-btn"
+            onClick={() => void reconnect()}
+            disabled={connecting}
+          >
+            {connecting ? 'Connecting…' : 'I already have a wallet'}
+          </button>
+          {connectError && <p className="error">{connectError}</p>}
+        </div>
+      )}
+
       <DeviceStrip />
     </section>
   )
@@ -135,15 +209,11 @@ function Onboard({ flow }: { flow: Flow<CreatePasskeyResult> }) {
 // Orchestration lives in chain-setup.ts, outside React; these components only
 // render its store and forward the retry click.
 
-function WalletView({ credential }: { credential: CreatePasskeyResult }) {
-  return OFFLINE ? (
-    <OfflineWallet credential={credential} />
-  ) : (
-    <LiveWallet credential={credential} />
-  )
+function WalletView({ identity }: { identity: WalletIdentity }) {
+  return OFFLINE ? <OfflineWallet identity={identity} /> : <LiveWallet identity={identity} />
 }
 
-function LiveWallet({ credential }: { credential: CreatePasskeyResult }) {
+function LiveWallet({ identity }: { identity: WalletIdentity }) {
   const chain = useSyncExternalStore(chainStore.subscribe, chainStore.getState)
 
   return (
@@ -178,7 +248,7 @@ function LiveWallet({ credential }: { credential: CreatePasskeyResult }) {
         {chain.phase === 'error' && (
           <div className="chain-error">
             <p className="error">{chain.error}</p>
-            <button type="button" className="ghost" onClick={() => startChainSetup(credential)}>
+            <button type="button" className="ghost" onClick={() => startChainSetup(identity)}>
               Try again
             </button>
           </div>
@@ -186,21 +256,24 @@ function LiveWallet({ credential }: { credential: CreatePasskeyResult }) {
       </div>
 
       {chain.phase === 'ready' && chain.address && chain.session && (
-        <LiveSendPanel credential={credential} address={chain.address} session={chain.session} />
+        <>
+          <LiveSendPanel identity={identity} address={chain.address} session={chain.session} />
+          <RecoveryPanel identity={identity} address={chain.address} session={chain.session} />
+        </>
       )}
 
-      <ProofDrawer credential={credential} />
+      <ProofDrawer identity={identity} />
       <ModuleDrawer />
     </section>
   )
 }
 
 function LiveSendPanel({
-  credential,
+  identity,
   address,
   session,
 }: {
-  credential: CreatePasskeyResult
+  identity: WalletIdentity
   address: string
   session: Session
 }) {
@@ -213,13 +286,13 @@ function LiveSendPanel({
           sendPayment(session, address, async (payload) => {
             const assertion = await signWithPasskey({
               challenge: payload,
-              allowCredentials: [credential.credentialId],
+              allowCredentials: [identity.credentialId],
             })
             recordSign(assertion)
             return assertion
           }),
       }),
-    [credential, address, session],
+    [identity, address, session],
   )
 
   return (
@@ -286,28 +359,28 @@ function LiveReceipt({ result }: { result: PaymentResult }) {
 
 // ---- offline mode (the hermetic path the e2e suite drives) ------------------
 
-function OfflineWallet({ credential }: { credential: CreatePasskeyResult }) {
+function OfflineWallet({ identity }: { identity: WalletIdentity }) {
   const address = useMemo(
     () =>
       deriveWalletAddress({
         deployer: OFFLINE_DEPLOYER,
-        keyId: credential.credentialId,
+        keyId: identity.credentialId,
         networkPassphrase: NETWORK,
       }),
-    [credential],
+    [identity],
   )
 
   return (
     <section className="wallet enter">
       <WalletCard address={address} pill="Testnet" />
-      <OfflineSendPanel credential={credential} />
-      <ProofDrawer credential={credential} />
+      <OfflineSendPanel identity={identity} />
+      <ProofDrawer identity={identity} />
       <ModuleDrawer />
     </section>
   )
 }
 
-function OfflineSendPanel({ credential }: { credential: CreatePasskeyResult }) {
+function OfflineSendPanel({ identity }: { identity: WalletIdentity }) {
   const flow = useMemo(
     () =>
       createSignFlow({
@@ -316,13 +389,13 @@ function OfflineSendPanel({ credential }: { credential: CreatePasskeyResult }) {
         sign: async () => {
           const result = await signWithPasskey({
             challenge: DEMO_PAYLOAD,
-            allowCredentials: [credential.credentialId],
+            allowCredentials: [identity.credentialId],
           })
           recordSign(result)
           return result
         },
       }),
-    [credential],
+    [identity],
   )
 
   return (
@@ -451,7 +524,7 @@ function ChainStep({
   )
 }
 
-function ProofDrawer({ credential }: { credential: CreatePasskeyResult }) {
+function ProofDrawer({ identity }: { identity: WalletIdentity }) {
   return (
     <details className="drawer">
       <summary>Technical proof</summary>
@@ -463,17 +536,96 @@ function ProofDrawer({ credential }: { credential: CreatePasskeyResult }) {
         <div className="field">
           <span className="field__label">Credential ID</span>
           <code className="field__value" data-field="credential-id">
-            {credential.credentialIdBase64Url}
+            {identity.credentialIdBase64Url}
           </code>
         </div>
-        <div className="field">
-          <span className="field__label">Public key (65-byte P-256)</span>
-          <code className="field__value" data-field="public-key">
-            {bytesToHex(credential.publicKey)}
-          </code>
-        </div>
+        {identity.publicKey && (
+          <div className="field">
+            <span className="field__label">Public key (65-byte P-256)</span>
+            <code className="field__value" data-field="public-key">
+              {bytesToHex(identity.publicKey)}
+            </code>
+          </div>
+        )}
       </div>
     </details>
+  )
+}
+
+// Recovery is signer management: enroll a second passkey, then add it as a
+// signer on the wallet, authorized by the passkey you already control. After
+// this, either passkey can move money — which is also why the panel says so.
+function RecoveryPanel({
+  identity,
+  address,
+  session,
+}: {
+  identity: WalletIdentity
+  address: string
+  session: Session
+}) {
+  const [recoveryTx, setRecoveryTx] = useState<string | undefined>()
+
+  const flow = useMemo(
+    () =>
+      createRecoverFlow({
+        detectCapabilities,
+        selectFallbacks,
+        enrollPasskey: createPasskey,
+        input: backupInput,
+        addSigner: async (enrolled) => {
+          const hash = await addSignerToWallet({
+            session,
+            walletAddress: address,
+            currentCredentialId: identity.credentialId,
+            newCredentialId: enrolled.credentialId,
+            newPublicKey: enrolled.publicKey,
+            signPayload: async (payload) =>
+              signWithPasskey({ challenge: payload, allowCredentials: [identity.credentialId] }),
+          })
+          setRecoveryTx(hash)
+        },
+      }),
+    [identity, address, session],
+  )
+
+  return (
+    <div className="panel">
+      <h2 className="panel__title">Backup &amp; recovery</h2>
+      <p className="panel__hint">
+        Add a second passkey as a signer. You approve it with the passkey you already hold; after
+        that, either one can authorize this wallet. Adding a signer is also how account takeover
+        happens — a real wallet should make this step loud, not quiet.
+      </p>
+      <Recover
+        flow={flow}
+        theme={AURUM_THEME}
+        autoStart={false}
+        labels={{ action: 'Add a backup passkey' }}
+        renderSuccess={(enrolled) => (
+          <div className="receipt">
+            <div className="receipt__stamp">Signer added</div>
+            <p className="receipt__line">
+              The wallet contract now trusts two passkeys. Verified on-chain: the new signer is
+              readable from the contract's storage.
+            </p>
+            {recoveryTx && (
+              <p className="receipt__link">
+                <a href={`${EXPLORER}/tx/${recoveryTx}`} target="_blank" rel="noreferrer">
+                  View add_signer on stellar.expert ↗
+                </a>
+              </p>
+            )}
+            <div className="field">
+              <span className="field__label">Backup credential ID</span>
+              <code className="field__value" data-field="backup-credential-id">
+                {enrolled.credentialIdBase64Url}
+              </code>
+            </div>
+          </div>
+        )}
+      />
+    </div>
   )
 }
 
