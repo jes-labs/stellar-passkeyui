@@ -12,20 +12,20 @@ Until #94 merges and ships in a kit release, this example depends on the kit **b
 "@creit.tech/stellar-wallets-kit": "file:../../../Stellar-Wallets-Kit/src/dist"
 ```
 
-So running it locally takes two repos:
+Because that `file:` path would otherwise break the main `pnpm install`, this example is **excluded from the workspace** (see `pnpm-workspace.yaml`) and installs on its own. Running it locally takes two repos:
 
 ```bash
 # 1. Build the kit from the PR branch (sibling checkout of the fork)
 cd ../Stellar-Wallets-Kit && git checkout feat/passkey-module
 cd src && deno task build-npm
 
-# 2. Run this example
-cd ../../stellar-passkeyUI
+# 2. Install and run this example on its own (not via the root workspace)
+cd ../../stellar-passkeyUI/examples/kit-integration
 pnpm install
-pnpm --filter example-kit-integration run dev
+pnpm run dev
 ```
 
-Once the module ships in a published kit version, the dependency switches to the normal npm package and step 1 disappears.
+Once the module ships in a published kit version, the dependency switches to the normal npm package, the example can rejoin the workspace, and step 1 disappears.
 
 ## What to look at
 

@@ -15,6 +15,7 @@ import {
   deriveWalletAddress,
   passkeyKitSignatureScVal,
   payloadForAuthEntry,
+  rpcWalletStateReader,
   toBase64Url,
 } from '@passkey-ui/core'
 import {
@@ -103,6 +104,15 @@ async function main() {
     throw new Error(`address mismatch: predicted ${predicted}, deployed ${walletAddress}`)
   }
   log('address derivation matches on-chain deployment ✓')
+
+  // The wallet-state reader must see what we just put on-chain.
+  const reader = rpcWalletStateReader(server)
+  if (!(await reader.contractExists(walletAddress)))
+    throw new Error('state reader: contract missing')
+  if (!(await reader.hasSecp256r1Signer(walletAddress, credentialId))) {
+    throw new Error('state reader: signer not found')
+  }
+  log('wallet-state reader sees the contract and its signer ✓')
 
   // 5. Fund the wallet with 100 XLM through the native SAC.
   const fundTx = await buildTx(

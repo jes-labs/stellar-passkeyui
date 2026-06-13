@@ -1,6 +1,10 @@
 packages:
   - packages/*
   - examples/*
+  # Standalone: it consumes the kit built from the PR-branch fork via a file:
+  # dependency, so it is not part of the workspace install. Run it with its own
+  # `pnpm install` inside examples/kit-integration. See its README.
+  - '!examples/kit-integration'
   - apps/*
   - e2e
 

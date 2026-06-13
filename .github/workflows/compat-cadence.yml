@@ -1,0 +1,50 @@
+name: Compatibility cadence
+
+# The maintenance plan the RFP scores. Once a week (and on demand) we re-run the
+# automated compatibility cells and regenerate the guide, so a Chromium or OS
+# change that breaks a documented behavior is caught instead of silently rotting.
+# The manual device-lab cells are a separate human process; see the guide's
+# "How to read this" section for what is automated versus hand-verified.
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # Mondays, 09:00 UTC
+  workflow_dispatch:
+
+jobs:
+  recheck:
+    name: Re-validate automated cells
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build libraries
+        run: pnpm build
+
+      - name: Regenerate the guide from the data
+        run: pnpm --filter @passkey-ui/compat run generate
+
+      - name: Install Chromium
+        run: pnpm --filter @passkey-ui/e2e exec playwright install --with-deps chromium
+
+      - name: Re-run the automated compatibility cells
+        run: pnpm --filter @passkey-ui/e2e exec playwright test
+
+      - name: Note drift, if any
+        if: always()
+        run: |
+          if ! git diff --quiet -- apps/docs/compatibility.md; then
+            echo "::notice::The generated guide changed since it was last committed; regenerate and commit."
+          else
+            echo "Guide is current."
+          fi

@@ -3,9 +3,26 @@
 // effects (StrictMode runs effects twice in dev), remounts, and re-renders:
 // no matter how many times the UI asks, there is exactly one setup in flight,
 // and every stage is idempotent against actual chain state.
-import type { CreatePasskeyResult } from '@passkey-ui/core'
 import { createStore } from '@passkey-ui/ui'
-import { type Session, deployWallet, fundWallet, getSession, walletAddressFor } from './testnet'
+import {
+  type Session,
+  contractExists,
+  deployWallet,
+  fundWallet,
+  getSession,
+  walletAddressFor,
+} from './testnet'
+
+/**
+ * Who the wallet belongs to. A freshly created passkey carries its public key
+ * (needed to deploy); a reconnected one does not, and never needs it — its
+ * wallet already exists on-chain.
+ */
+export interface WalletIdentity {
+  credentialId: Uint8Array
+  credentialIdBase64Url: string
+  publicKey?: Uint8Array | undefined
+}
 
 export type ChainPhase = 'idle' | 'session' | 'deploying' | 'funding' | 'ready' | 'error'
 
@@ -28,28 +45,34 @@ let inFlight: Promise<void> | undefined
  * call from anywhere, any number of times — including as a retry after an
  * error, where the idempotent stages skip whatever already happened on-chain.
  */
-export function startChainSetup(credential: CreatePasskeyResult): void {
+export function startChainSetup(identity: WalletIdentity): void {
   if (inFlight || chainStore.getState().phase === 'ready') return
-  inFlight = run(credential).finally(() => {
+  inFlight = run(identity).finally(() => {
     inFlight = undefined
   })
 }
 
-async function run(credential: CreatePasskeyResult): Promise<void> {
+async function run(identity: WalletIdentity): Promise<void> {
   const patch = (next: Partial<ChainSetupState>) =>
     chainStore.setState({ ...chainStore.getState(), ...next })
 
   try {
     patch({ phase: 'session', error: undefined })
     const session = await getSession()
-    const address = walletAddressFor(session, credential.credentialId)
+    const address = walletAddressFor(session, identity.credentialId)
 
     patch({ phase: 'deploying', session, address })
-    const { deployHash } = await deployWallet(
-      session,
-      credential.credentialId,
-      credential.publicKey,
-    )
+    let deployHash = ''
+    if (await contractExists(address)) {
+      // Reconnect, or a previous deploy that landed: nothing to do.
+    } else if (identity.publicKey) {
+      deployHash = (await deployWallet(session, identity.credentialId, identity.publicKey))
+        .deployHash
+    } else {
+      throw new Error(
+        'No wallet exists for this passkey on this browser. Create a new wallet instead.',
+      )
+    }
     // Idempotent stages return an empty hash when the work already happened;
     // never let that erase a link we showed the user.
     patch({ phase: 'funding', ...(deployHash ? { deployHash } : {}) })

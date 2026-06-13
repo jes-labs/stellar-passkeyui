@@ -14,11 +14,13 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command:
-      'pnpm --filter example-kit-integration run build && pnpm --filter example-kit-integration run preview',
+    // kit-integration is a standalone project (consumes the PR-branch kit build
+    // via a file: dependency), so it installs and builds on its own rather than
+    // through the workspace.
+    command: 'cd examples/kit-integration && pnpm install && pnpm run build && pnpm run preview',
     cwd: '..',
     url: 'http://localhost:4174',
     reuseExistingServer: false,
-    timeout: 180_000,
+    timeout: 240_000,
   },
 })
